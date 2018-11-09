@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "apidisk.h": "c",
+        "disk.h": "c",
+        "stdio.h": "c",
+        "t2fs.h": "c"
+    }
+}
