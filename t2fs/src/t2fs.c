@@ -3,6 +3,10 @@
 #include <string.h>
 #include "../include/t2fs.h"
 #include "../include/disk.h"
+#include "../include/apidisk.h"
+
+
+
 
 /*-----------------------------------------------------------------------------
 Fun��o: Usada para identificar os desenvolvedores do T2FS.

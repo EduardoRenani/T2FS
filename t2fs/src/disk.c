@@ -5,6 +5,8 @@
 #include "../include/disk.h"
 #include "../include/t2fs.h"
 
+int startDiskFlag = 0;
+struct t2fs_superbloco superBloco;
 
 /*
 ========================================================================================================
@@ -54,8 +56,8 @@ unsigned char* DWORDtoLittleEndian4bytes(DWORD data) {
 }
 
 int startDisk() {
-    if(!initDiskFlag) {
-        initDiskFlag = 1;
+    if(startDiskFlag == 0) {
+        startDiskFlag = 1;
         unsigned char* buffer = (unsigned char*)malloc(sizeof(unsigned char) * 256);
         if(read_sector((unsigned int)0, buffer) != 0)
             return -1;

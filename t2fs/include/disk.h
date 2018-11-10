@@ -1,14 +1,12 @@
-#ifndef ___DISK___
-#define ___DISK___
+#ifndef _DISK_H_
+#define _DISK_H_
 #include "t2fs.h"
-#include "apidisk.h"
 
 #define END_OF_FILE 0xFFFFFFFF
 
 #define BAD_SECTOR 0xFFFFFFFE
 
-int initDiskFlag = 0;
-struct t2fs_superbloco superBloco;
+extern struct t2fs_superbloco superBloco;
 
 
 /*

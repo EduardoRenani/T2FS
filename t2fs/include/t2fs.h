@@ -1,5 +1,5 @@
-#ifndef __LIBT2FS___
-#define __LIBT2FS___
+#ifndef _LIBT2FS_H_
+#define _LIBT2FS_H_
 
 #define	SECTOR_SIZE	256
 
@@ -9,6 +9,7 @@
 #define	TYPEVAL_LINK		0x03
 
 #define	INVALID_PTR	-1
+
 
 typedef int FILE2;
 typedef int DIR2;
