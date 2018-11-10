@@ -7,7 +7,9 @@
 #include "utils.h" 
 #include "t2fs.h"
 #include "disk.h"
-  
+ /*
+==================== LINKED LIST (CHAR) =========================
+*/ 
 /* Given a reference (pointer to pointer) to the head of a list 
    and an string, inserts a new node on the front of the list. */
 void push(struct Node** head_ref, char* new_data) 
@@ -72,6 +74,9 @@ void printList(struct Node *node)
     } 
     printf("\n");
 } 
+/*
+=================== PARSER DE PATHNAME ===================
+*/
 
 void printSuperBloco(){
 	int i;
@@ -85,7 +90,7 @@ void printSuperBloco(){
 		printf("\nNumero de Setores em um Cluster: %hu setores", superBloco.SectorsPerCluster);
 		printf("\nPosicao (em setores logicos) onde a FAT inicia: %hu", superBloco.pFATSectorStart);
 		printf("\nNumero do Cluster onde está a area de dados do Diretorio Raiz: %hu", superBloco.RootDirCluster);
-		printf("\nPosicao (em setores lógicos) do inicio da area de dados %hu", superBloco.DataSectorStart);
+		printf("\nPosicao (em setores lógicos) do inicio da area de dados: %hu", superBloco.DataSectorStart);
         printf("\nTamanho de um Setor: 256 bytes");
         printf("\nTamanho de um Cluster: %hu bytes\n", superBloco.SectorsPerCluster*256);
     }

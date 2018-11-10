@@ -6,8 +6,11 @@
 
 #define BAD_SECTOR 0xFFFFFFFE
 
-extern struct t2fs_superbloco superBloco;
+#define REGISTER_SIZE 64
 
+extern struct t2fs_superbloco superBloco;
+extern int registersPerCluster;
+extern int clusterSize;
 
 /*
 ========================================================================================================
@@ -61,5 +64,14 @@ unsigned char* DWORDtoLittleEndian4bytes(DWORD data);
 */
 int startDisk();
 
+/*
+    Recebe a posicao de um cluster no disco e retorna o endereco apontador para um buffer de memoria onde foram armazenados esses dados 
+*/
+BYTE* readDataFromCluster (int clusterPose);
+
+/*
+    Recebe a posicao de um diretorio (01 cluster) no disco e retorna um vetor com todos os registros contidos nele.
+*/
+int readFolder (struct t2fs_record* (*registerArray)[], int clusterPose);
 
 #endif

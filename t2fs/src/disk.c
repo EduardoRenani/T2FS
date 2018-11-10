@@ -7,7 +7,8 @@
 
 int startDiskFlag = 0;
 struct t2fs_superbloco superBloco;
-
+int registersPerCluster;
+int clusterSize;
 /*
 ========================================================================================================
     Funcoes de conversao do dado em stream de bytes arranjados como little endian que já foi lido do disco e se encontra na memória para um tipo em C. 
@@ -72,8 +73,43 @@ int startDisk() {
         superBloco.RootDirCluster = littleEndian4BytesToDWORD(buffer+24);
         superBloco.DataSectorStart = littleEndian4BytesToDWORD(buffer+28);
 
+        registersPerCluster = (superBloco.SectorsPerCluster * SECTOR_SIZE) / (REGISTER_SIZE);
+        clusterSize = superBloco.SectorsPerCluster*SECTOR_SIZE;
+
         free(buffer);
     }
 
     return 0;
+}
+
+BYTE* readDataFromCluster(int clusterPose){ //checa se o cluster tá dentro da area de dados, aloca espaco em memoria para um buffer
+    unsigned int i;                           //e preenche o mesmo com os dados presentes no cluster.
+    DWORD clusterFirstSector = superBloco.DataSectorStart + superBloco.SectorsPerCluster * clusterPose;
+    BYTE* buffer = malloc(sizeof(BYTE) * clusterSize); 
+    if (clusterFirstSector >= superBloco.DataSectorStart && clusterFirstSector < superBloco.NofSectors) {
+        for(i = clusterFirstSector; i < clusterFirstSector + superBloco.SectorsPerCluster; i++)//incremento do loop em unidade de setores
+            read_sector(i, buffer + (i - clusterFirstSector)*SECTOR_SIZE);  //incremento do buffer de memória em unidade de BYTES. (A cada laço, o buffer recebe +256 bytes)
+        return buffer;
+    }
+    return NULL;
+}
+
+int readFolder (struct t2fs_record* (*registerArray)[], int clusterPose){ //ira retornar um vetor de registros de diretório.
+    int i;
+    DWORD clusterFirstSector = superBloco.DataSectorStart + superBloco.SectorsPerCluster * clusterPose;
+    BYTE* buffer = malloc(sizeof(BYTE) * clusterSize);//tamanho do setor em BYTES
+    buffer = readDataFromCluster(clusterPose);
+    if (clusterFirstSector >= superBloco.DataSectorStart && clusterFirstSector < superBloco.NofSectors && buffer != NULL) {
+        for(i = 0; i < registersPerCluster; i++){
+            (*registerArray)[i] = malloc(sizeof(struct t2fs_record));
+            (*registerArray)[i]->TypeVal = (BYTE)buffer[REGISTER_SIZE * i];
+            memcpy((*registerArray)[i]->name, buffer + 1 + (REGISTER_SIZE * i), 51);
+            (*registerArray)[i]->bytesFileSize = littleEndian4BytesToDWORD(buffer + 52 + (REGISTER_SIZE * i));
+            (*registerArray)[i]->clustersFileSize = littleEndian4BytesToDWORD(buffer + 56 + (REGISTER_SIZE * i));
+            (*registerArray)[i]->firstCluster = littleEndian4BytesToDWORD(buffer + 60 + (REGISTER_SIZE * i));
+        }
+        return 0;
+    }
+    return -1;
+
 }
