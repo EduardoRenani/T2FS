@@ -8,7 +8,7 @@
 #include "t2fs.h"
 #include "disk.h"
  /*
-==================== LINKED LIST (CHAR) =========================
+==================== LINKED QUEUE (CHAR) =========================
 */ 
 /* Given a reference (pointer to pointer) to the head of a list 
    and an string, inserts a new node on the front of the list. */
@@ -74,6 +74,13 @@ void printList(struct Node *node)
     } 
     printf("\n");
 } 
+
+ /*
+==================== LINKED LIST (DIR2) =========================
+
+*/
+
+
 /*
 =================== PARSER DE PATHNAME ===================
 */

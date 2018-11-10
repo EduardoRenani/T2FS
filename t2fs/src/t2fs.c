@@ -4,6 +4,7 @@
 #include "../include/t2fs.h"
 #include "../include/disk.h"
 #include "../include/apidisk.h"
+#include "../include/utils.h"
 
 
 
@@ -279,8 +280,23 @@ Entra:	handle -> identificador do diret�rio cujas entradas deseja-se ler.
 Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (zero).
 	Em caso de erro, ser� retornado um valor diferente de zero ( e "dentry" n�o ser� v�lido)
 -----------------------------------------------------------------------------*/
-int readdir2 (DIR2 handle, DIRENT2 *dentry) {
-    return -1;
+int readdir2 (DIR2 handle, DIRENT2 *dentry) { //TODO: colocar campo de tamanho do diretorio no dir_manager e usar ele pra n ler os bytes vazios do dir.
+	if(startDiskFlag == 0){
+		if(startDisk() != 0)
+			return -1;
+	}
+	startDiskFlag = 1;
+	struct t2fs_record* vectorOfRegisters[registersPerCluster];
+	int i = openFolders[handle].currentEntryPointer;
+	if(i != -1 && i < sizeof(vectorOfRegisters)){
+		readFolder(&vectorOfRegisters, handle);
+		strcpy(dentry->name, vectorOfRegisters[i]->name);
+		dentry->fileType = vectorOfRegisters[i]->TypeVal;
+		dentry->fileSize = vectorOfRegisters[i]->bytesFileSize;
+		openFolders[handle].currentEntryPointer++;
+		return 0;
+	}
+	return -1;
 }
 
 

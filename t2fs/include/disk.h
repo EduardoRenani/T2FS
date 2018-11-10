@@ -8,10 +8,25 @@
 
 #define REGISTER_SIZE 64
 
+extern int startDiskFlag;
 extern struct t2fs_superbloco superBloco;
 extern int registersPerCluster;
-extern int clusterSize;
+extern int clusterSize; 
 
+typedef struct{
+    char filename[51];
+    int  currentPointer;
+    FILE2 firstCluster;
+}FILE2_MANAGER;
+
+typedef struct{
+    char filename[51];
+    int  currentEntryPointer;
+    FILE2 clusterPose;
+}DIR2_MANAGER;
+
+extern DIR2_MANAGER openFolders[10];
+extern FILE2_MANAGER openFiles[10];
 /*
 ========================================================================================================
     Funcoes de conversao do dado em stream de bytes arranjados como little endian que já foi lido do disco e se encontra na memória para um tipo em C. 

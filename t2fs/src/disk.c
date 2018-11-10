@@ -4,11 +4,15 @@
 #include "../include/apidisk.h"
 #include "../include/disk.h"
 #include "../include/t2fs.h"
+#include "../include/utils.h"
 
 int startDiskFlag = 0;
 struct t2fs_superbloco superBloco;
 int registersPerCluster;
 int clusterSize;
+
+FILE2_MANAGER openFiles[10];
+DIR2_MANAGER openFolders[10]; 
 /*
 ========================================================================================================
     Funcoes de conversao do dado em stream de bytes arranjados como little endian que já foi lido do disco e se encontra na memória para um tipo em C. 
@@ -57,8 +61,8 @@ unsigned char* DWORDtoLittleEndian4bytes(DWORD data) {
 }
 
 int startDisk() {
+    int i;
     if(startDiskFlag == 0) {
-        startDiskFlag = 1;
         unsigned char* buffer = (unsigned char*)malloc(sizeof(unsigned char) * 256);
         if(read_sector((unsigned int)0, buffer) != 0)
             return -1;
@@ -76,7 +80,22 @@ int startDisk() {
         registersPerCluster = (superBloco.SectorsPerCluster * SECTOR_SIZE) / (REGISTER_SIZE);
         clusterSize = superBloco.SectorsPerCluster*SECTOR_SIZE;
 
+        //INICIALIZA LISTA DE ARQUIVOS ABERTOS
+        for (i = 0; i < 10; i++) {
+            openFiles[i].firstCluster = -1;
+            openFiles[i].currentPointer = -1;
+            strcpy(openFiles[i].filename,"");
+        }
+        //INICIALIZA LISTA DE DIRETORIOS ABERTOS
+        for (i = 0; i < 10; i++) {
+            openFolders[i].clusterPose = -1;
+            openFolders[i].currentEntryPointer = -1;
+            strcpy(openFolders[i].filename,"");
+        }
+
+
         free(buffer);
+        startDiskFlag = 1;
     }
 
     return 0;
@@ -94,7 +113,7 @@ BYTE* readDataFromCluster(int clusterPose){ //checa se o cluster tá dentro da a
     return NULL;
 }
 
-int readFolder (struct t2fs_record* (*registerArray)[], int clusterPose){ //ira retornar um vetor de registros de diretório.
+int readFolder(struct t2fs_record*(*registerArray)[], int clusterPose){ //ira retornar um vetor de registros de diretório.
     int i;
     DWORD clusterFirstSector = superBloco.DataSectorStart + superBloco.SectorsPerCluster * clusterPose;
     BYTE* buffer = malloc(sizeof(BYTE) * clusterSize);//tamanho do setor em BYTES

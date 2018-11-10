@@ -1,8 +1,9 @@
 #ifndef _UTILS_H_
 #define _UTILS_H_
-
+#include "disk.h"
+#include "t2fs.h"
 /*
-==================== LINKED LIST =========================
+==================== LINKED QUEUE (CHAR) =========================
 */
 
 // A linked list node 
@@ -23,6 +24,10 @@ char* pop(struct Node **head_ref);
 // This function prints contents of linked list starting from  
 // the given node 
 void printList(struct Node *node);
+
+/*
+==================== LINKED LIST (OPEN DIRS) =========================
+*/ 
 
 /*
 =================== PARSER DE PATHNAME ===================
