@@ -364,7 +364,16 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int closedir2 (DIR2 handle) {
-    return -1;
+	struct t2fs_record* record = (struct t2fs_record*)malloc(sizeof(struct t2fs_record));
+	record = searchOpenDir(handle);
+    if(deleteOpenDir(record) == 0){
+		printf("\nDiretorio: ");
+		fputs(record->name, stdout);
+		printf(" fechado com sucesso\n");
+		return 0;
+	}
+	else
+		return -1;
 }
 
 

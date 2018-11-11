@@ -113,7 +113,11 @@ int main(){
         }
     }
 
-     printOpenDir();
+    printOpenDir();
+
+    closedir2(2);
+    closedir2(5);
+    
     return 0;
 }
 

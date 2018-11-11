@@ -138,11 +138,32 @@ int pushOpenDir(struct t2fs_record* record){
     }
 }
 
-void deleteOpenDir(struct t2fs_record* record){
-    openFolders[record->firstCluster].clusterPose = -1;
-    openFolders[record->firstCluster].currentEntryPointer = -1;
-    openFolders[record->firstCluster].byteSize = -1;
-    strcpy(openFolders[record->firstCluster].filename, "");
+int deleteOpenDir(struct t2fs_record* record){
+    if(record->TypeVal == TYPEVAL_DIRETORIO && record->firstCluster != -1 && record != NULL){
+        openFolders[record->firstCluster].clusterPose = -1;
+        openFolders[record->firstCluster].currentEntryPointer = -1;
+        openFolders[record->firstCluster].byteSize = -1;
+        strcpy(openFolders[record->firstCluster].filename, "");
+        return 0;
+    }
+    else{
+        printf("\nERRO: voce esta tentando abrir um diretorio que nao existe ou nao foi aberto\n");
+        return -1;
+    }
+}
+
+struct t2fs_record* searchOpenDir(DIR2 handle){
+    struct t2fs_record* record = (struct t2fs_record*)malloc(sizeof(struct t2fs_record));
+    if(openFolders[handle].clusterPose != -1){
+    strcpy(record->name,openFolders[handle].filename);
+    record->TypeVal = TYPEVAL_DIRETORIO;
+    record->firstCluster = openFolders[handle].clusterPose;
+    record->bytesFileSize = SECTOR_SIZE*superBloco.SectorsPerCluster;
+    record->clustersFileSize = 1;
+    return record;
+    }
+    else
+        return NULL;
 }
 
 void printOpenDir(){

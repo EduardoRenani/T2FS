@@ -43,7 +43,9 @@ void concat(struct Node** head_ref, struct Node** tail);
 
 int pushOpenDir(struct t2fs_record* record);
 
-void deleteOpenDir(struct t2fs_record* record);
+int deleteOpenDir(struct t2fs_record* record);
+
+struct t2fs_record* searchOpenDir(DIR2 handle);
 
 void printOpenDir();
 /*
