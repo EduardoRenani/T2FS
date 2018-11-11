@@ -4,6 +4,7 @@
         "disk.h": "c",
         "stdio.h": "c",
         "t2fs.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "utils.h": "c"
     }
 }

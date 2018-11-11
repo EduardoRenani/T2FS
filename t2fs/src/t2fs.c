@@ -221,7 +221,7 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 		Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int chdir2 (char *pathname) {
-    return -1;
+	return -1;
 }
 
 
@@ -241,7 +241,12 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 		Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int getcwd2 (char *pathname, int size) {
-    return -1;
+    if(sizeof(pathname) > size)
+		return -1;
+	else{
+		strcpy(pathname, WORKING_DIR);
+		return 0;
+	}
 }
 
 
@@ -260,7 +265,49 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna o ide
 	Em caso de erro, ser� retornado um valor negativo.
 -----------------------------------------------------------------------------*/
 DIR2 opendir2 (char *pathname) {
-    return -1;
+    int i = 0, currentDir = superBloco.RootDirCluster;
+	char pathWorkingDir[500], localWorkingPath[500];
+	struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
+	struct t2fs_record* vectorOfrecords[recordsPerCluster];
+	struct t2fs_record* record = NULL;
+	pathTokens = pathnameParser(pathname);
+	strcpy(localWorkingPath,"");
+	int pathtype = pathType(pathname);
+	if(pathtype == -1)
+		return -1;
+	if(pathtype != 0){ //se o caminho for relativo, é só procurar a partir da pasta. se for abs, concatena o pathname corrente e usa o mesmo metodo
+		getcwd2(pathWorkingDir, 500);
+		strcpy(localWorkingPath, pathWorkingDir);
+		pathname = strcat(localWorkingPath, pathname);
+		pathTokens = pathnameParser(pathname);
+	}
+	if(strcmp(pathname, "/") == 0){
+		readFolder(&vectorOfrecords, superBloco.RootDirCluster);
+		record = searchrecord(&vectorOfrecords, ".");
+		strcpy(record->name, "/");
+		if(pushOpenDir(record) == 0){
+			printf("\nDiretorio aberto: ");
+			fputs(record->name, stdout);
+			printf("\n");
+			return record->firstCluster;
+		}
+		else
+			return -1;
+	}
+	int size = len(pathTokens);
+	for(i = 0; i < size; i++){
+		readFolder(&vectorOfrecords, currentDir);
+		record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
+		currentDir = record->firstCluster;
+	}
+	if(pushOpenDir(record) == 0){
+			printf("\nDiretorio aberto: ");
+			fputs(record->name, stdout);
+			printf("\n");
+		return record->firstCluster;
+	}
+	else
+		return -1;
 }
 
 
@@ -286,17 +333,24 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) { //TODO: colocar campo de tamanho d
 			return -1;
 	}
 	startDiskFlag = 1;
-	struct t2fs_record* vectorOfRegisters[registersPerCluster];
+	struct t2fs_record* vectorOfrecords[recordsPerCluster];
 	int i = openFolders[handle].currentEntryPointer;
-	if(i != -1 && i < sizeof(vectorOfRegisters)){
-		readFolder(&vectorOfRegisters, handle);
-		strcpy(dentry->name, vectorOfRegisters[i]->name);
-		dentry->fileType = vectorOfRegisters[i]->TypeVal;
-		dentry->fileSize = vectorOfRegisters[i]->bytesFileSize;
+	if(i != -1 && i < sizeof(vectorOfrecords)){
+		readFolder(&vectorOfrecords, handle);
+		if(vectorOfrecords[i]->TypeVal == 0){
+			printf("\nNao ha mais entradas validas para ler\n");
+			return -1;
+		}
+		strcpy(dentry->name, vectorOfrecords[i]->name);
+		dentry->fileType = vectorOfrecords[i]->TypeVal;
+		dentry->fileSize = vectorOfrecords[i]->bytesFileSize;
 		openFolders[handle].currentEntryPointer++;
 		return 0;
 	}
-	return -1;
+	else{
+		printf("\nVoce esta tentando ler um diretorio que nao foi aberto\n");
+		return -1;
+	}
 }
 
 

@@ -6,12 +6,13 @@
 
 #define BAD_SECTOR 0xFFFFFFFE
 
-#define REGISTER_SIZE 64
+#define record_SIZE 64
 
 extern int startDiskFlag;
 extern struct t2fs_superbloco superBloco;
-extern int registersPerCluster;
+extern int recordsPerCluster;
 extern int clusterSize; 
+extern char WORKING_DIR[500];
 
 typedef struct{
     char filename[51];
@@ -23,9 +24,10 @@ typedef struct{
     char filename[51];
     int  currentEntryPointer;
     FILE2 clusterPose;
+    int byteSize;
 }DIR2_MANAGER;
 
-extern DIR2_MANAGER openFolders[10];
+extern DIR2_MANAGER openFolders[10000];
 extern FILE2_MANAGER openFiles[10];
 /*
 ========================================================================================================
@@ -87,6 +89,10 @@ BYTE* readDataFromCluster (int clusterPose);
 /*
     Recebe a posicao de um diretorio (01 cluster) no disco e retorna um vetor com todos os registros contidos nele.
 */
-int readFolder (struct t2fs_record* (*registerArray)[], int clusterPose);
+int readFolder (struct t2fs_record* (*recordArray)[], int clusterPose);
+
+struct t2fs_record* searchrecord(struct t2fs_record* (*recordArray)[], char* filename);
+
+void printCurrentPath();
 
 #endif

@@ -7,6 +7,8 @@
 #include "utils.h" 
 #include "t2fs.h"
 #include "disk.h"
+
+
  /*
 ==================== LINKED QUEUE (CHAR) =========================
 */ 
@@ -59,6 +61,25 @@ char* pop(struct Node **head_ref)
         return NULL;
     }
 } 
+
+/* Given a reference (pointer to pointer) to the head of a list 
+   and a key, deletes the first occurrence of key in linked list */
+char *popLast(struct Node **head_ref) 
+{   
+    char* popped = "";
+    // Store head node 
+    struct Node* temp = *head_ref; 
+    struct Node* ant = *head_ref; 
+    // If head node itself holds the key to be deleted 
+    while(temp->next != NULL){ 
+        ant = temp;
+        temp = temp->next;   // Changed head 
+    }
+    strcpy(popped, temp->data);
+    ant->next = NULL;
+    free(temp);
+    return popped;
+} 
   
 // This function prints contents of linked list starting from  
 // the given node 
@@ -74,12 +95,69 @@ void printList(struct Node *node)
     } 
     printf("\n");
 } 
+int len(struct Node* head) { 
+    int count = 0;  // Initialize count 
+    struct Node* current = head;  // Initialize current 
+    while (current != NULL) 
+    { 
+        count++; 
+        current = current->next; 
+    }
+    return count; 
+} 
 
- /*
-==================== LINKED LIST (DIR2) =========================
-
+void concat(struct Node** head_ref, struct Node** tail){
+    struct Node* aux = (struct Node*) malloc(sizeof(struct Node)); 
+    if(*head_ref == NULL && *tail != NULL){
+        *head_ref = *tail;
+    }
+    else if(*head_ref != NULL && *tail != NULL){
+        aux = *head_ref;
+        while(aux->next != NULL){
+            aux = aux->next;
+        }
+        aux->next = *tail;
+    }
+    *head_ref = aux;
+}
+/*
+=================== VETOR DE DIRETORIOS ABERTOS ==========
 */
 
+int pushOpenDir(struct t2fs_record* record){
+    if(record->TypeVal == TYPEVAL_DIRETORIO){
+    openFolders[record->firstCluster].clusterPose = record->firstCluster;
+    openFolders[record->firstCluster].currentEntryPointer = 0;
+    openFolders[record->firstCluster].byteSize = record->bytesFileSize;
+    strcpy(openFolders[record->firstCluster].filename, record->name);
+    return 0;
+    }
+    else{
+        printf("\nERRO: voce esta tentando abrir um arquivo que nao eh um diretorio\n");
+        return -1;
+    }
+}
+
+void deleteOpenDir(struct t2fs_record* record){
+    openFolders[record->firstCluster].clusterPose = -1;
+    openFolders[record->firstCluster].currentEntryPointer = -1;
+    openFolders[record->firstCluster].byteSize = -1;
+    strcpy(openFolders[record->firstCluster].filename, "");
+}
+
+void printOpenDir(){
+    int i = 0;
+    printf("\n");
+    printf("Lista de diretorios abertos: ");
+    for(i = 0; i < 10000; i++){
+        if(openFolders[i].clusterPose != -1){
+            printf("[");
+            fputs(openFolders[i].filename, stdout);
+            printf("]---");
+        }
+    }
+    printf("\n");
+}
 
 /*
 =================== PARSER DE PATHNAME ===================
@@ -142,6 +220,8 @@ int dummiePrint(){
 }
 
 char* substringGenerator(char* string, int first, int last){
+    if(last < first)
+        return "";
     int i;
      char subString[(last - first) + 2];
     for (i = 0; i < sizeof(subString); i++)
@@ -157,12 +237,15 @@ char* substringGenerator(char* string, int first, int last){
 
 struct Node* tokenizer(char* string){
     struct Node* tokenList = NULL;
+    char* temp;
     int left = 0, right = 0, i = 0;
     while(string[right] != '\0'){
-        if(string[right] == '/'){          
-            push(&tokenList, substringGenerator(string, left, right-1));
+        if(string[right] == '/'){
+            temp = substringGenerator(string, left, right -1);
+            if(strlen(temp)>0)          
+                push(&tokenList, substringGenerator(string, left, right -1));
             i++;
-            right ++;
+            right++;
             left = right;
         }
         else
@@ -172,26 +255,37 @@ struct Node* tokenizer(char* string){
     return tokenList;
 }
 
-struct Node* pathnameParser(char* pathname){
-	if(pathname[0] == '/' && isValidPathname(pathname)){
-        printf("PATH ABSOLUTO!\n");
+int pathType(char * pathname){
+    if(pathname[0] == '/' && isValidPathname(pathname)){
+        //printf("PATH ABSOLUTO!\n");
+        return PATHTYPE_ABS;
     }
     else if(pathname[0] == '.' && pathname[1] == '.' && isValidPathname(substringGenerator(pathname, 2, strlen(pathname)-1))){
-        printf("PATH RELATIVO AO PAI\n");
-        //fputs(substringGenerator(pathname, 2, strlen(pathname)-1), stdout);
+        //printf("PATH RELATIVO AO PAI\n");
+        return PATHTYPE_PAI;
     }
     else if(pathname[0] == '.' && pathname[1] == '/' && isValidPathname(substringGenerator(pathname, 1, strlen(pathname)-1))){
-        printf("PATH RELATIVO AO DIRETORIO CORRENTE\n");
-        //fputs(substringGenerator(pathname, 1, strlen(pathname)-1), stdout);
+        //printf("PATH RELATIVO AO DIRETORIO CORRENTE\n");
+        return PATHTYPE_CUR;
     }
-    else if(isAlphaNum(pathname)){
-        printf("APENAS O NOME DO ARQUIVO!\n");
-        //fputs(pathname, stdout);
+    else if(isAlphaNum(pathname) || strcmp(pathname, ".") || strcmp(pathname, "..")){
+        //printf("APENAS O NOME DO ARQUIVO!\n");
+        return PATHTYPE_ARQ;
     }
     else{
         printf("PATH INVALIDO\n");
-        return NULL;
+        return -1;
     }
-    return tokenizer(pathname);
-
 }
+
+
+struct Node* pathnameParser(char* pathname){
+    if(pathType(pathname) != -1)
+        return tokenizer(pathname);
+    else
+        return NULL;
+}
+
+int max(int a, int b){
+    return ((a) > (b) ? a : b);
+} 

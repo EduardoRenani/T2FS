@@ -8,11 +8,12 @@
 
 int startDiskFlag = 0;
 struct t2fs_superbloco superBloco;
-int registersPerCluster;
+int recordsPerCluster;
 int clusterSize;
+char WORKING_DIR[500];
 
 FILE2_MANAGER openFiles[10];
-DIR2_MANAGER openFolders[10]; 
+DIR2_MANAGER openFolders[10000]; 
 /*
 ========================================================================================================
     Funcoes de conversao do dado em stream de bytes arranjados como little endian que já foi lido do disco e se encontra na memória para um tipo em C. 
@@ -77,7 +78,7 @@ int startDisk() {
         superBloco.RootDirCluster = littleEndian4BytesToDWORD(buffer+24);
         superBloco.DataSectorStart = littleEndian4BytesToDWORD(buffer+28);
 
-        registersPerCluster = (superBloco.SectorsPerCluster * SECTOR_SIZE) / (REGISTER_SIZE);
+        recordsPerCluster = (superBloco.SectorsPerCluster * SECTOR_SIZE) / (record_SIZE);
         clusterSize = superBloco.SectorsPerCluster*SECTOR_SIZE;
 
         //INICIALIZA LISTA DE ARQUIVOS ABERTOS
@@ -87,13 +88,14 @@ int startDisk() {
             strcpy(openFiles[i].filename,"");
         }
         //INICIALIZA LISTA DE DIRETORIOS ABERTOS
-        for (i = 0; i < 10; i++) {
+        for (i = 0; i < 10000; i++) {
             openFolders[i].clusterPose = -1;
             openFolders[i].currentEntryPointer = -1;
-            strcpy(openFolders[i].filename,"");
+            openFolders[i].byteSize = -1;
+            strcpy(openFolders[i].filename, "");
         }
 
-
+        strcpy(WORKING_DIR, "/");
         free(buffer);
         startDiskFlag = 1;
     }
@@ -113,22 +115,44 @@ BYTE* readDataFromCluster(int clusterPose){ //checa se o cluster tá dentro da a
     return NULL;
 }
 
-int readFolder(struct t2fs_record*(*registerArray)[], int clusterPose){ //ira retornar um vetor de registros de diretório.
+int readFolder(struct t2fs_record*(*recordArray)[], int clusterPose){ //ira retornar um vetor de registros de diretório.
     int i;
     DWORD clusterFirstSector = superBloco.DataSectorStart + superBloco.SectorsPerCluster * clusterPose;
     BYTE* buffer = malloc(sizeof(BYTE) * clusterSize);//tamanho do setor em BYTES
     buffer = readDataFromCluster(clusterPose);
     if (clusterFirstSector >= superBloco.DataSectorStart && clusterFirstSector < superBloco.NofSectors && buffer != NULL) {
-        for(i = 0; i < registersPerCluster; i++){
-            (*registerArray)[i] = malloc(sizeof(struct t2fs_record));
-            (*registerArray)[i]->TypeVal = (BYTE)buffer[REGISTER_SIZE * i];
-            memcpy((*registerArray)[i]->name, buffer + 1 + (REGISTER_SIZE * i), 51);
-            (*registerArray)[i]->bytesFileSize = littleEndian4BytesToDWORD(buffer + 52 + (REGISTER_SIZE * i));
-            (*registerArray)[i]->clustersFileSize = littleEndian4BytesToDWORD(buffer + 56 + (REGISTER_SIZE * i));
-            (*registerArray)[i]->firstCluster = littleEndian4BytesToDWORD(buffer + 60 + (REGISTER_SIZE * i));
+        for(i = 0; i < recordsPerCluster; i++){
+            (*recordArray)[i] = malloc(sizeof(struct t2fs_record));
+            (*recordArray)[i]->TypeVal = (BYTE)buffer[record_SIZE * i];
+            memcpy((*recordArray)[i]->name, buffer + 1 + (record_SIZE * i), 51);
+            (*recordArray)[i]->bytesFileSize = littleEndian4BytesToDWORD(buffer + 52 + (record_SIZE * i));
+            (*recordArray)[i]->clustersFileSize = littleEndian4BytesToDWORD(buffer + 56 + (record_SIZE * i));
+            (*recordArray)[i]->firstCluster = littleEndian4BytesToDWORD(buffer + 60 + (record_SIZE * i));
         }
         return 0;
     }
     return -1;
 
 }
+
+struct t2fs_record* searchrecord(struct t2fs_record*(*recordArray)[], char* filename){
+    int i = 0;
+    while(strcmp((*recordArray)[i]->name, filename) != 0 && i < recordsPerCluster){
+        i++;
+    }
+    if(i >= recordsPerCluster)
+        return NULL;
+    else if(strcmp((*recordArray)[i]->name, filename) == 0)
+            return (*recordArray)[i];
+    else
+        return NULL;
+}
+
+void printCurrentPath(){
+    char temp[500];
+    getcwd2(temp, 500);
+    printf("\nCURRENT DIR: ");
+    fputs(temp, stdout);
+    printf("\n");
+}
+
