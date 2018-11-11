@@ -1,0 +1,31 @@
+Para compilar o seu teste:
+
+abra o terminal, vá até a pasta teste
+
+digite "make" e dê enter. você estará recompilando todos os arquivos teste desta pasta (inclusive aquele que voce está programando no momento).
+
+após isso, será criado um executável para cada teste. 
+
+agora você tem duas opções para rodar o seu executável:
+
+a) Você pode simplesmente rodá-lo digitando "./teste" e dando enter. (importante, o ./ é precedido pelo nome do seu teste, entao se for teste1, digite "./teste1");
+
+ou 
+
+b) Você pode chamar o debugger do compilador, o GDB, para executar o seu teste em modo de debug. para isso, digite: "gdb ./teste", de enter. 
+    Com isso, voce entrará em modo debug. Para rodar, digite "run". Para sair do modo debug, digite "quit".
+
+Obs: 
+    o makefile chamado pela make irá recompilar apenas os arquivos de teste, se uma mudança for feita nos arquivos da biblioteca ("utils","t2fs" ou "disk")
+    terá que recompilar usando o make file da pasta "t2fs", o que não é recomendado pois pode gerar dessincronia com o desenvolvimento do trabalho.
+
+Exemplo do que foi explicado assim:
+
+$ cd /media/T2FS/t2fs/teste
+$ make
+$ gdb ./teste3
+$ (gdb) run
+$
+$
+$
+$ (gdb) quit
