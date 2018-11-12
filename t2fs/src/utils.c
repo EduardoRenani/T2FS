@@ -189,16 +189,16 @@ void printSuperBloco(){
     if (startDisk() == 0){
         for(i=0; i < 4; i++)
             printf("%c", superBloco.id[i]);
-		printf("\nVersao: %hu", superBloco.version);
+		printf("\nVersao: %i", superBloco.version);
 		printf("\nTamanho do Super Bloco: %hu setor(es)", superBloco.superblockSize);
-		printf("\nTamanho do Disco: %hu bytes", superBloco.DiskSize);
-		printf("\nNumero de Setores na particao: %hu setores", superBloco.NofSectors);
-		printf("\nNumero de Setores em um Cluster: %hu setores", superBloco.SectorsPerCluster);
-		printf("\nPosicao (em setores logicos) onde a FAT inicia: %hu", superBloco.pFATSectorStart);
-		printf("\nNumero do Cluster onde está a area de dados do Diretorio Raiz: %hu", superBloco.RootDirCluster);
-		printf("\nPosicao (em setores lógicos) do inicio da area de dados: %hu", superBloco.DataSectorStart);
+		printf("\nTamanho do Disco: %d bytes", superBloco.DiskSize);
+		printf("\nNumero de Setores na particao: %d setores", superBloco.NofSectors);
+		printf("\nNumero de Setores em um Cluster: %d setores", superBloco.SectorsPerCluster);
+		printf("\nPosicao (em setores logicos) onde a FAT inicia: %d", superBloco.pFATSectorStart);
+		printf("\nNumero do Cluster onde está a area de dados do Diretorio Raiz: %d", superBloco.RootDirCluster);
+		printf("\nPosicao (em setores lógicos) do inicio da area de dados: %d", superBloco.DataSectorStart);
         printf("\nTamanho de um Setor: 256 bytes");
-        printf("\nTamanho de um Cluster: %hu bytes\n", superBloco.SectorsPerCluster*256);
+        printf("\nTamanho de um Cluster: %d bytes\n", superBloco.SectorsPerCluster*256);
     }
 	else 
 		printf("Erro ao ler o disco!\n");
@@ -278,23 +278,21 @@ struct Node* tokenizer(char* string){
 
 int pathType(char * pathname){
     if(pathname[0] == '/' && isValidPathname(pathname)){
-        //printf("PATH ABSOLUTO!\n");
         return PATHTYPE_ABS;
     }
     else if(pathname[0] == '.' && pathname[1] == '.' && isValidPathname(substringGenerator(pathname, 2, strlen(pathname)-1))){
-        //printf("PATH RELATIVO AO PAI\n");
         return PATHTYPE_PAI;
     }
     else if(pathname[0] == '.' && pathname[1] == '/' && isValidPathname(substringGenerator(pathname, 1, strlen(pathname)-1))){
-        //printf("PATH RELATIVO AO DIRETORIO CORRENTE\n");
         return PATHTYPE_CUR;
     }
     else if(isAlphaNum(pathname) || strcmp(pathname, ".") || strcmp(pathname, "..")){
-        //printf("APENAS O NOME DO ARQUIVO!\n");
         return PATHTYPE_ARQ;
     }
+    else if(strcmp(pathname, "/") == 0){
+        return PATHTYPE_ROOT;
+    }
     else{
-        printf("PATH INVALIDO\n");
         return -1;
     }
 }

@@ -182,7 +182,61 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int mkdir2 (char *pathname) {
-    return -1;
+	int type = pathType(pathname);
+	int i = 0;
+	int currentDir = superBloco.RootDirCluster;
+	struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
+	struct t2fs_record* vectorOfrecords[recordsPerCluster];
+	struct t2fs_record* record = NULL;
+	struct t2fs_record* new_record = (struct t2fs_record*)malloc(sizeof(struct t2fs_record));
+	switch(type){
+		case PATHTYPE_ABS:
+			pathTokens = pathnameParser(pathname);
+			int size = len(pathTokens);
+			for(i = 0; i < size-1; i++){  //size-1 pois queremos chegar até o penultimo token do pathname, o ultimo eh o proprio diretorio a ser criado.
+				readFolder(&vectorOfrecords, currentDir);
+				record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
+				if(record == NULL || record->TypeVal != TYPEVAL_DIRETORIO){
+				printf("\nPath invalido");
+				return -1;
+				}
+				currentDir = record->firstCluster;
+			}
+			strcpy(new_record->name, pop(&pathTokens));
+			readFolder(&vectorOfrecords, currentDir);
+			record = searchrecord(&vectorOfrecords, new_record->name);
+			if(record != NULL){
+				printf("\nERRO: Ja existe um arquivo ou diretorio com este nome!\n");
+				return -1;
+			}
+			new_record->TypeVal = TYPEVAL_DIRETORIO;
+			new_record->clustersFileSize = 1;
+			new_record->bytesFileSize = 1024;
+			if(allocateCluster(new_record) != 0) //o campo firstcluster do new record sera preenchido dentro da allocate cluster
+				return -1;
+			else if(writeNewRecord(new_record, currentDir) !=0)
+				return -1;
+			else
+				return criaArquivosPonto(new_record, currentDir);
+		break;
+		case PATHTYPE_PAI:
+			return -1;
+		break;
+		case PATHTYPE_CUR:
+			return -1;
+		break;
+		case PATHTYPE_ARQ:
+			return -1;
+		break;
+		case PATHTYPE_ROOT:
+			printf("Diretorio ja existente");
+			return -1;
+		break;
+		default:
+			return -1;
+		break;
+	}
+	return 0;
 }
 
 
@@ -275,7 +329,7 @@ DIR2 opendir2 (char *pathname) {
 	int pathtype = pathType(pathname);
 	if(pathtype == -1)
 		return -1;
-	if(pathtype != 0){ //se o caminho for relativo, é só procurar a partir da pasta. se for abs, concatena o pathname corrente e usa o mesmo metodo
+	if(pathtype != PATHTYPE_ABS){ //se o caminho for relativo, é só procurar a partir da pasta. se for abs, concatena o pathname corrente e usa o mesmo metodo
 		getcwd2(pathWorkingDir, 500);
 		strcpy(localWorkingPath, pathWorkingDir);
 		pathname = strcat(localWorkingPath, pathname);

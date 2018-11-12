@@ -13,6 +13,7 @@ extern struct t2fs_superbloco superBloco;
 extern int recordsPerCluster;
 extern int clusterSize; 
 extern char WORKING_DIR[500];
+extern int fatSizeInSectors;
 
 typedef struct{
     char filename[51];
@@ -91,8 +92,29 @@ BYTE* readDataFromCluster (int clusterPose);
 */
 int readFolder (struct t2fs_record* (*recordArray)[], int clusterPose);
 
+/*
+    Recebe um registro de diretorio e a posicao de um diretorio e escreve o registro no primeiro espaço livre do cluster.
+*/
+int writeNewRecord(struct t2fs_record* record, DIR2 handle);
+/*
+    Procura um dado arquivo no vetor de registros de algum cluster.
+*/
 struct t2fs_record* searchrecord(struct t2fs_record* (*recordArray)[], char* filename);
 
+/*
+    Procura o proximo nodo livre na FAT e aloca o registro recebido nele.
+*/
+
+int allocateCluster(struct t2fs_record* record);
+
+/*
+    Recebe um registro de diretorio, pega o primeiro cluster indicado, vai ate ele e preenche os 2 primeiros espacos de registro (64 bytes) com "." e ".."
+*/
+
+int criaArquivosPonto(struct t2fs_record* record, DIR2 fatherClusterPose);
+
 void printCurrentPath();
+
+void readAllDir2(DIR2 handle);
 
 #endif

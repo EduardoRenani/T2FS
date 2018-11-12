@@ -3,11 +3,11 @@
 #include "disk.h"
 #include "t2fs.h"
 
-#define PATHTYPE_ABS 0;
-#define PATHTYPE_PAI 1;
-#define PATHTYPE_CUR 2;
-#define PATHTYPE_ARQ 3;
-
+#define PATHTYPE_ABS 0
+#define PATHTYPE_PAI 1
+#define PATHTYPE_CUR 2
+#define PATHTYPE_ARQ 3
+#define PATHTYPE_ROOT 10
 /*
 ==================== LINKED QUEUE (CHAR) =========================
 */

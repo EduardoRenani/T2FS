@@ -8,11 +8,6 @@
 #define TYPEVAL_DIRETORIO   0x02
 #define	TYPEVAL_LINK		0x03
 
-#define PATHTYPE_ABS 0;
-#define PATHTYPE_PAI 1;
-#define PATHTYPE_CUR 2;
-#define PATHTYPE_ARQ 3;
-
 #define	INVALID_PTR	-1
 
 

@@ -20,7 +20,6 @@ int main(){
     
     startDisk();
     printSuperBloco();
-    int i=0;
     /*
     struct t2fs_record* vectorOfrecords[recordsPerCluster];
     readFolder(&vectorOfrecords, superBloco.RootDirCluster);
@@ -33,7 +32,6 @@ int main(){
         printf("\nTamanho do arquivo: %d bytes", vectorOfrecords[i]->bytesFileSize);
         printf("\nTamanho do arquivo (em clusters): %d clusters", vectorOfrecords[i]->clustersFileSize);
         printf("\nPosicao do primeiro cluster de dados do arquivo: %d\n", vectorOfrecords[i]->firstCluster);
-
     }
     */
     /*openFolders[2].clusterPose = 2;
@@ -84,6 +82,7 @@ int main(){
     printCurrentPath();
     printOpenDir();
     */
+    /*
     char* args = "./dir1";
     char* args2 = "/link1";
     char* args3 = "../file2.txt";
@@ -117,7 +116,34 @@ int main(){
 
     closedir2(2);
     closedir2(5);
+    */
+
+    char* args0 = "/diretorioRenani22222";
+    char* root = "/";
+    int pose;
+    mkdir2(args0);
+    pose = opendir2(root);
+    readAllDir2(pose);
+
+    int i = 0;
+    int j = 0;
+    int vectorFat[SECTOR_SIZE];
+    BYTE* buffer = malloc(sizeof(BYTE)*SECTOR_SIZE);
+    for(i = 0; i < 1; i++){
+        read_sector(i + superBloco.pFATSectorStart, buffer);
+        j = 0;
+        while(j<SECTOR_SIZE){
+        vectorFat[i*1+(j/4)] = littleEndian4BytesToDWORD(buffer+j);
+        printf("\nnodo: %d antecede o cluster: %X", i*1+(j/4), vectorFat[i*1+(j/4)]);
+        j += 4;
+        }
+    }
+
+    pose = opendir2(args0);
+    readAllDir2(pose);
     
+
+
     return 0;
 }
 
