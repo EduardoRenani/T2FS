@@ -401,7 +401,7 @@ int checkValidPath(char* pathname, int filetype){
     }
     readFolder(&vectorOfrecords, currentDir);
     record = searchrecord(&vectorOfrecords, pop(&pathTokens));
-    if(record->TypeVal == filetype)
+    if(record != NULL && record->TypeVal == filetype)
         return 0;
     else
         return -1;

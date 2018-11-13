@@ -196,6 +196,15 @@ int writeNewRecord(struct t2fs_record* record, DIR2 handle){
         return 0;                                                               
     }
 }
+void eraseCluster(int handle){
+    int i = 0;
+    BYTE* erase = '\0';
+    BYTE* buffer = malloc(sizeof(BYTE)*SECTOR_SIZE);
+    for(i = 0; i < SECTOR_SIZE; i++){
+        memcpy(buffer + i, &erase, 1);
+    }
+    write_sector(handle, buffer);
+}
 
 int allocateCluster(struct t2fs_record* record){
     int i = 0;

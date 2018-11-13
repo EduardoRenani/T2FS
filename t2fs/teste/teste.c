@@ -165,5 +165,7 @@ int main(){
     printCurrentPath();
     chdir2("dir2");
     printCurrentPath();
+    eraseCluster(2);
+    readAllDir2(2);
     return 0;
 }

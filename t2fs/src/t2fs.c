@@ -266,8 +266,10 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 		Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int chdir2 (char *pathname) {
-	if(checkValidPath != 0)
+	if(checkValidPath(pathname, TYPEVAL_DIRETORIO) != 0){
 		strcpy(WORKING_DIR, absPathGenerator(pathname));
+		return 0;
+	}
 	else
 		return -1;
 }

@@ -105,6 +105,11 @@ struct t2fs_record* searchrecord(struct t2fs_record* (*recordArray)[], char* fil
     Procura o proximo nodo livre na FAT e aloca o registro recebido nele.
 */
 
+/*
+    Apaga todos os dados de um determinado cluster
+*/
+void eraseCluster(int handle);
+
 int allocateCluster(struct t2fs_record* record);
 
 /*
