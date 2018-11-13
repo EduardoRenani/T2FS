@@ -364,13 +364,13 @@ char* absPathGenerator(char* pathname){
         case PATHTYPE_CUR:
             strcpy(cwslice, cwdir);
             pathnameSlice = substringGenerator(pathname, 1, strlen(pathname) - 1);
-            fprintf(stderr, "\n%s\n", pathnameSlice);
             strncat(cwslice, pathnameSlice, strlen(pathnameSlice)); 
             return cwslice;
             break;
         case PATHTYPE_ARQ:
             strcpy(cwslice, cwdir);
-            strcat(cwslice, "/");
+            if(strcmp(cwslice, "/") != 0)
+                strcat(cwslice, "/");
             strncat(cwslice, pathname, strlen(pathname));
             return cwslice;
             break;

@@ -143,7 +143,7 @@ int main(){
     pose = opendir2(args0);
     readAllDir2(pose);
     */
-    strcpy(WORKING_DIR, "/dir1");
+    /*strcpy(WORKING_DIR, "/dir1");
     char* args0 = "./dir2";
     char* args1 = "dir3";
     char* args2 = "./dir1/dir2/dir3";
@@ -159,5 +159,11 @@ int main(){
     
     //int handle = opendir2(args2);
     readAllDir2(2);
+    */
+    printCurrentPath();
+    chdir2("dir1");
+    printCurrentPath();
+    chdir2("dir2");
+    printCurrentPath();
     return 0;
 }
