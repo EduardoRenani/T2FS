@@ -197,13 +197,17 @@ int writeNewRecord(struct t2fs_record* record, DIR2 handle){
     }
 }
 void eraseCluster(int handle){
-    int i = 0;
+    int sectorPose = superBloco.DataSectorStart + (handle * superBloco.SectorsPerCluster);
+    int i = 0, j = 0;
     BYTE* erase = '\0';
-    BYTE* buffer = malloc(sizeof(BYTE)*SECTOR_SIZE);
-    for(i = 0; i < SECTOR_SIZE; i++){
-        memcpy(buffer + i, &erase, 1);
+    BYTE* buffer = malloc(sizeof(BYTE)*SECTOR_SIZE*superBloco.SectorsPerCluster);
+    for(j = 0; j < superBloco.SectorsPerCluster; j++){
+        for(i = 0; i < SECTOR_SIZE; i++){
+            memcpy(buffer + i, &erase, 1);
+        }
+        write_sector(sectorPose, buffer);
+        sectorPose++;
     }
-    write_sector(handle, buffer);
 }
 
 int allocateCluster(struct t2fs_record* record){
