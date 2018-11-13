@@ -11,11 +11,11 @@ struct t2fs_superbloco superBloco;
 int recordsPerCluster;
 int recordsPerSector = 4;
 int clusterSize;
-char WORKING_DIR[500];
+char WORKING_DIR[MAX_FILE_NAME_SIZE+1];
 int fatSizeInSectors;
 
 FILE2_MANAGER openFiles[10];
-DIR2_MANAGER openFolders[10000]; 
+DIR2_MANAGER openFolders[10]; 
 /*
 ========================================================================================================
     Funcoes de conversao do dado em stream de bytes arranjados como little endian que já foi lido do disco e se encontra na memória para um tipo em C. 
@@ -91,14 +91,15 @@ int startDisk() {
             strcpy(openFiles[i].filename,"");
         }
         //INICIALIZA LISTA DE DIRETORIOS ABERTOS
-        for (i = 0; i < 10000; i++) {
+        for (i = 0; i < 10; i++) {
             openFolders[i].clusterPose = -1;
             openFolders[i].currentEntryPointer = -1;
             openFolders[i].byteSize = -1;
-            strcpy(openFolders[i].filename, "");
+            strncpy(openFolders[i].filename, "", 1);
         }
 
-        strcpy(WORKING_DIR, "/");
+        strncpy(WORKING_DIR, "/", 1);
+
         free(buffer);
         startDiskFlag = 1;
     }
@@ -187,7 +188,7 @@ int writeNewRecord(struct t2fs_record* record, DIR2 handle){
             write_sector(sectorPose, buffer);
             
         }
-        printf("\nRegistro: ");
+        printf("\nRegistro: '");
         fputs(record->name, stdout);
         printf("' alocado com sucesso na primeira posicao livre do cluster do diretorio ");
         fputs(vectorOfrecords[0]->name, stdout);
@@ -268,15 +269,16 @@ void printCurrentPath(){
 void readAllDir2(DIR2 handle){
     int i = 0;
     struct t2fs_record* vectorOfrecords[recordsPerCluster];
+    readFolder(&vectorOfrecords, handle);
     for(i=0; i<recordsPerCluster; i++){
-        readFolder(&vectorOfrecords, handle);
-        printf("\nNome do arquivo: ");
-        fputs(vectorOfrecords[i]->name, stdout);
-        printf("\n");
-        printf("Posicao do primeiro cluster: %d\n",vectorOfrecords[i]->firstCluster);
-        printf("Tipo do arquivo: %d\n",vectorOfrecords[i]->TypeVal);
-        printf("Tamanhdo do arquivo em bytes: %d bytes\n",vectorOfrecords[i]->bytesFileSize);
-        printf("Tamanhdo do arquivo em clusters: %d clusters\n",vectorOfrecords[i]->clustersFileSize);        
+        if(vectorOfrecords[i]->TypeVal != 0){
+            printf("\nNome do arquivo: ");
+            fputs(vectorOfrecords[i]->name, stdout);
+            printf("\n");
+            printf("Posicao do primeiro cluster: %d\n",vectorOfrecords[i]->firstCluster);
+            printf("Tipo do arquivo: %d\n",vectorOfrecords[i]->TypeVal);
+            printf("Tamanhdo do arquivo em bytes: %d bytes\n",vectorOfrecords[i]->bytesFileSize);
+            printf("Tamanhdo do arquivo em clusters: %d clusters\n",vectorOfrecords[i]->clustersFileSize);        
         }
     }
-
+}

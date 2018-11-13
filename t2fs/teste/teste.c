@@ -118,7 +118,8 @@ int main(){
     closedir2(5);
     */
 
-    char* args0 = "/diretorioRenani22222";
+    
+    /*
     char* root = "/";
     int pose;
     mkdir2(args0);
@@ -141,9 +142,22 @@ int main(){
 
     pose = opendir2(args0);
     readAllDir2(pose);
+    */
+    strcpy(WORKING_DIR, "/dir1");
+    char* args0 = "./dir2";
+    char* args1 = "dir3";
+    char* args2 = "./dir1/dir2/dir3";
+    mkdir2(args0);
+    mkdir2(args1);
+    mkdir2(args2);
+    opendir2(args0);
+    opendir2(args1);
+    int handle = opendir2(args2);
+    printf("\n");
+    printOpenDir();
+    printf("\n");
     
-
-
+    //int handle = opendir2(args2);
+    readAllDir2(2);
     return 0;
 }
-

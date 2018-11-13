@@ -66,6 +66,11 @@ struct Node* pathnameParser(char* pathname);
 
 int pathType(char * pathname);
 
+char* slicePath(char* pathname, int numberOfSlices);
+
+char* absPathGenerator(char* pathname);
+
+int checkValidPath(char* pathname, int filetype);
 //------------------------------------
 int max(int a, int b);
 

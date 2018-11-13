@@ -182,61 +182,52 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int mkdir2 (char *pathname) {
-	int type = pathType(pathname);
+	char* args = malloc(sizeof(char)*MAX_FILE_NAME_SIZE);
+	strcpy(args, pathname);
+	int type = pathType(args);
 	int i = 0;
 	int currentDir = superBloco.RootDirCluster;
 	struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
 	struct t2fs_record* vectorOfrecords[recordsPerCluster];
 	struct t2fs_record* record = NULL;
 	struct t2fs_record* new_record = (struct t2fs_record*)malloc(sizeof(struct t2fs_record));
-	switch(type){
-		case PATHTYPE_ABS:
-			pathTokens = pathnameParser(pathname);
-			int size = len(pathTokens);
-			for(i = 0; i < size-1; i++){  //size-1 pois queremos chegar até o penultimo token do pathname, o ultimo eh o proprio diretorio a ser criado.
-				readFolder(&vectorOfrecords, currentDir);
-				record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
-				if(record == NULL || record->TypeVal != TYPEVAL_DIRETORIO){
-				printf("\nPath invalido");
-				return -1;
-				}
-				currentDir = record->firstCluster;
-			}
-			strcpy(new_record->name, pop(&pathTokens));
-			readFolder(&vectorOfrecords, currentDir);
-			record = searchrecord(&vectorOfrecords, new_record->name);
-			if(record != NULL){
-				printf("\nERRO: Ja existe um arquivo ou diretorio com este nome!\n");
-				return -1;
-			}
-			new_record->TypeVal = TYPEVAL_DIRETORIO;
-			new_record->clustersFileSize = 1;
-			new_record->bytesFileSize = 1024;
-			if(allocateCluster(new_record) != 0) //o campo firstcluster do new record sera preenchido dentro da allocate cluster
-				return -1;
-			else if(writeNewRecord(new_record, currentDir) !=0)
-				return -1;
-			else
-				return criaArquivosPonto(new_record, currentDir);
-		break;
-		case PATHTYPE_PAI:
-			return -1;
-		break;
-		case PATHTYPE_CUR:
-			return -1;
-		break;
-		case PATHTYPE_ARQ:
-			return -1;
-		break;
-		case PATHTYPE_ROOT:
-			printf("Diretorio ja existente");
-			return -1;
-		break;
-		default:
-			return -1;
-		break;
+	if(type == PATHTYPE_ROOT){
+		printf("\nERRO, diretorio ja existente");
+		return -1;
 	}
-	return 0;
+	else{
+		args = absPathGenerator(args);
+		pathTokens = pathnameParser(args);
+		int size = len(pathTokens);
+		for(i = 0; i < size-1; i++){  //size-1 pois queremos chegar até o penultimo token do pathname, o ultimo eh o proprio diretorio a ser criado.
+			readFolder(&vectorOfrecords, currentDir);
+			record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
+			if(record == NULL || record->TypeVal != TYPEVAL_DIRETORIO){
+			printf("\nPath invalido");
+			return -1;
+			}
+			currentDir = record->firstCluster;
+		}
+		strcpy(new_record->name, pop(&pathTokens));
+		readFolder(&vectorOfrecords, currentDir);
+		record = searchrecord(&vectorOfrecords, new_record->name);
+		if(record != NULL){
+			printf("\nERRO: Ja existe um arquivo ou diretorio com este nome!\n");
+			return -1;
+		}
+		new_record->TypeVal = TYPEVAL_DIRETORIO;
+		new_record->clustersFileSize = 1;
+		new_record->bytesFileSize = 1024;
+		if(allocateCluster(new_record) != 0) //o campo firstcluster do new record sera preenchido dentro da allocate cluster
+			return -1;
+		else if(writeNewRecord(new_record, currentDir) !=0)
+			return -1;
+		else{
+			fprintf(stderr, "\n este eh o pathname original ao fim do mkdir: %s\n", pathname);
+			return criaArquivosPonto(new_record, currentDir);
+		}
+		return 0;
+	}
 }
 
 
@@ -295,7 +286,11 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 		Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int getcwd2 (char *pathname, int size) {
-    if(sizeof(pathname) > size)
+    if(startDiskFlag == 0)
+		if(startDisk() == -1)
+			return -1;
+	startDiskFlag = 1;
+	if(strlen(WORKING_DIR) > size)
 		return -1;
 	else{
 		strcpy(pathname, WORKING_DIR);
@@ -319,22 +314,21 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna o ide
 	Em caso de erro, ser� retornado um valor negativo.
 -----------------------------------------------------------------------------*/
 DIR2 opendir2 (char *pathname) {
+	if(checkValidPath(pathname, TYPEVAL_DIRETORIO) == -1){
+		printf("\nERRO: Path invalido");
+		return -1;
+	}
     int i = 0, currentDir = superBloco.RootDirCluster;
-	char pathWorkingDir[500], localWorkingPath[500];
 	struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
 	struct t2fs_record* vectorOfrecords[recordsPerCluster];
 	struct t2fs_record* record = NULL;
 	pathTokens = pathnameParser(pathname);
-	strcpy(localWorkingPath,"");
 	int pathtype = pathType(pathname);
 	if(pathtype == -1)
 		return -1;
-	if(pathtype != PATHTYPE_ABS){ //se o caminho for relativo, é só procurar a partir da pasta. se for abs, concatena o pathname corrente e usa o mesmo metodo
-		getcwd2(pathWorkingDir, 500);
-		strcpy(localWorkingPath, pathWorkingDir);
-		pathname = strcat(localWorkingPath, pathname);
-		pathTokens = pathnameParser(pathname);
-	}
+
+	pathname = absPathGenerator(pathname);
+	pathTokens = pathnameParser(pathname);
 	if(strcmp(pathname, "/") == 0){
 		readFolder(&vectorOfrecords, superBloco.RootDirCluster);
 		record = searchrecord(&vectorOfrecords, ".");
@@ -352,6 +346,7 @@ DIR2 opendir2 (char *pathname) {
 	for(i = 0; i < size; i++){
 		readFolder(&vectorOfrecords, currentDir);
 		record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
+		//fputs(record->name, stderr);
 		currentDir = record->firstCluster;
 	}
 	if(pushOpenDir(record) == 0){

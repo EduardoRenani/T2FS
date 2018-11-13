@@ -12,7 +12,7 @@ extern int startDiskFlag;
 extern struct t2fs_superbloco superBloco;
 extern int recordsPerCluster;
 extern int clusterSize; 
-extern char WORKING_DIR[500];
+extern char WORKING_DIR[MAX_FILE_NAME_SIZE+1];
 extern int fatSizeInSectors;
 
 typedef struct{
@@ -28,7 +28,7 @@ typedef struct{
     int byteSize;
 }DIR2_MANAGER;
 
-extern DIR2_MANAGER openFolders[10000];
+extern DIR2_MANAGER openFolders[10];
 extern FILE2_MANAGER openFiles[10];
 /*
 ========================================================================================================
