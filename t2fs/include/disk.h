@@ -19,6 +19,7 @@ typedef struct{
     char filename[51];
     int  currentPointer;
     FILE2 firstCluster;
+    int byteSize;
 }FILE2_MANAGER;
 
 typedef struct{

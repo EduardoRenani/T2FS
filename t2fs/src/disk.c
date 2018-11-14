@@ -88,6 +88,7 @@ int startDisk() {
         for (i = 0; i < 10; i++) {
             openFiles[i].firstCluster = -1;
             openFiles[i].currentPointer = -1;
+            openFiles[i].byteSize = -1;
             strcpy(openFiles[i].filename,"");
         }
         //INICIALIZA LISTA DE DIRETORIOS ABERTOS

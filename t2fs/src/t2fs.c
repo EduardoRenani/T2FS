@@ -327,13 +327,11 @@ DIR2 opendir2 (char *pathname) {
 	struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
 	struct t2fs_record* vectorOfrecords[recordsPerCluster];
 	struct t2fs_record* record = NULL;
-	pathTokens = pathnameParser(pathname);
 	int pathtype = pathType(pathname);
-	if(pathtype == -1)
-		return -1;
-
 	pathname = absPathGenerator(pathname);
 	pathTokens = pathnameParser(pathname);
+	if(pathtype == -1)
+		return -1;
 	if(strcmp(pathname, "/") == 0){
 		readFolder(&vectorOfrecords, superBloco.RootDirCluster);
 		record = searchrecord(&vectorOfrecords, ".");
@@ -351,7 +349,6 @@ DIR2 opendir2 (char *pathname) {
 	for(i = 0; i < size; i++){
 		readFolder(&vectorOfrecords, currentDir);
 		record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
-		//fputs(record->name, stderr);
 		currentDir = record->firstCluster;
 	}
 	if(pushOpenDir(record) == 0){

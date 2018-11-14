@@ -363,7 +363,10 @@ char* absPathGenerator(char* pathname){
             break;
         case PATHTYPE_CUR:
             strcpy(cwslice, cwdir);
-            pathnameSlice = substringGenerator(pathname, 1, strlen(pathname) - 1);
+            if(strcmp(cwslice, "/") == 0)
+                pathnameSlice = substringGenerator(pathname, 2, strlen(pathname) - 1);
+            else
+                pathnameSlice = substringGenerator(pathname, 1, strlen(pathname) - 1);
             strncat(cwslice, pathnameSlice, strlen(pathnameSlice)); 
             return cwslice;
             break;
@@ -385,7 +388,9 @@ int checkValidPath(char* pathname, int filetype){
     struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
     struct t2fs_record* vectorOfrecords[recordsPerCluster];
     struct t2fs_record* record = NULL;
-    pathname = absPathGenerator(pathname);
+    int pathtype = pathType(pathname);
+    if(pathtype != PATHTYPE_ABS)
+        pathname = absPathGenerator(pathname);
     pathTokens = pathnameParser(pathname);
     if(pathTokens == NULL)
         return -1;

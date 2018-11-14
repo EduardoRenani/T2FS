@@ -160,12 +160,18 @@ int main(){
     //int handle = opendir2(args2);
     readAllDir2(2);
     */
-    printCurrentPath();
-    chdir2("dir1");
-    printCurrentPath();
-    chdir2("dir2");
-    printCurrentPath();
-    eraseCluster(2);
-    readAllDir2(2);
+    char* args = "./dir1";
+    char* args2 = "/link1";
+    char* args3 = "../file2.txt";
+    char* args4 = "/";
+    fprintf(stderr, "\nonanana");
+    opendir2(args);
+    fprintf(stderr, "\nonananaBBB");
+    opendir2(args2);
+    fprintf(stderr, "\nonananaCCC");
+    opendir2(args3);
+    fprintf(stderr, "\nonananadddDD");
+    opendir2(args4);
+
     return 0;
 }
