@@ -196,7 +196,8 @@ int mkdir2 (char *pathname) {
 		return -1;
 	}
 	else{
-		args = absPathGenerator(args);
+		if(type != PATHTYPE_ABS)
+			args = absPathGenerator(args);
 		pathTokens = pathnameParser(args);
 		int size = len(pathTokens);
 		for(i = 0; i < size-1; i++){  //size-1 pois queremos chegar até o penultimo token do pathname, o ultimo eh o proprio diretorio a ser criado.

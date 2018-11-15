@@ -160,18 +160,14 @@ int main(){
     //int handle = opendir2(args2);
     readAllDir2(2);
     */
-    char* args = "./dir1";
-    char* args2 = "/link1";
-    char* args3 = "../file2.txt";
+    char* args = "./dirTeste3";
+    char* args2 = "/dirTeste2";
+    char* args3 = "../dirTeste.txt";
     char* args4 = "/";
-    fprintf(stderr, "\nonanana");
-    opendir2(args);
-    fprintf(stderr, "\nonananaBBB");
-    opendir2(args2);
-    fprintf(stderr, "\nonananaCCC");
-    opendir2(args3);
-    fprintf(stderr, "\nonananadddDD");
-    opendir2(args4);
+    mkdir2(args);
+    mkdir2(args2);
+    mkdir2(args3);
+    mkdir2(args4);
 
     return 0;
 }
