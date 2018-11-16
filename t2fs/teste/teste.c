@@ -160,14 +160,14 @@ int main(){
     //int handle = opendir2(args2);
     readAllDir2(2);
     */
-    char* args = "./dirTeste3";
+    char* args = "./dir1";
     char* args2 = "/dirTeste2";
     char* args3 = "../dirTeste.txt";
     char* args4 = "/";
-    mkdir2(args);
-    mkdir2(args2);
-    mkdir2(args3);
-    mkdir2(args4);
+    opendir2(args);
+    opendir2(args2);
+    opendir2(args3);
+    opendir2(args4);
 
     return 0;
 }

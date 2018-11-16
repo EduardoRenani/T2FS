@@ -248,6 +248,9 @@ int isAlphaNum(char* pathname){
 
 int isValidPathname(char* pathname){
     int i = 0, isValid = 1;
+    fprintf(stderr, "\n%s\n", pathname);
+    if(sizeof(pathname) == 0)
+        return 0;
     while(pathname[i] != '\0'){
         isValid = isValid &&
             (
@@ -304,7 +307,7 @@ struct Node* tokenizer(char* string){
 }
 
 int pathType(char * pathname){
-    if(pathname[0] == '/' && isValidPathname(pathname)){
+    if(isValidPathname(pathname) && pathname[0] == '/'){
         return PATHTYPE_ABS;
     }
     else if(pathname[0] == '.' && pathname[1] == '.' && isValidPathname(substringGenerator(pathname, 2, strlen(pathname)-1))){
