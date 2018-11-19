@@ -134,10 +134,85 @@ int readFolder(struct t2fs_record*(*recordArray)[], int clusterPose){ //ira reto
             (*recordArray)[i]->clustersFileSize = littleEndian4BytesToDWORD(buffer + 56 + (record_SIZE * i));
             (*recordArray)[i]->firstCluster = littleEndian4BytesToDWORD(buffer + 60 + (record_SIZE * i));
         }
+		
         return 0;
     }
     return -1;
 
+}
+
+int checkEmptyFolder(struct t2fs_record* record, DIR2 handle){
+    int i = 2;
+    int sectorPose;
+    struct t2fs_record* vectorOfrecords[recordsPerCluster];
+    
+    readFolder(&vectorOfrecords, handle);
+    while(i < recordsPerCluster){
+        if(vectorOfrecords[i]->TypeVal!=0){
+			fprintf(stderr,"\nERRO: Diretório nao esta vazio\n") ;
+			return -1;
+			}
+		i++;
+    }
+	return 0;
+}
+
+int DeleteRecord(struct t2fs_record* record, DIR2 handle, char * name){
+    int i = 0, j = 0, k = 0;
+    int sectorPose;
+    struct t2fs_record* vectorOfrecords[recordsPerCluster];
+    BYTE* buffer = malloc(sizeof(BYTE)*SECTOR_SIZE); //buffer do tamanho do setor
+    for(j = 0; j < SECTOR_SIZE; j++) //zerando o buffer.
+        buffer[j] = '\0';
+    readFolder(&vectorOfrecords, handle);
+    while(i < recordsPerCluster){
+		//fprintf(stderr,"\nComparações %s %s\n",vectorOfrecords[i]->name,name);
+        if(strcmp(vectorOfrecords[i]->name,name)==0) //achou registro. 
+            break;
+        else
+            i++;
+    }
+    if(i == recordsPerCluster){
+        printf("\nDiretorio Cheio!\n");
+        return -1;
+    }
+    else{
+        if(i % recordsPerSector == 0){ // se a posicao inicial do i-esimo registro eh multipla do numero de registros por setor, 
+            sectorPose = superBloco.DataSectorStart + (handle*superBloco.SectorsPerCluster) + (i/4); //podemos escrever esse setor inteiro no disco. 
+            memcpy(buffer, &(record->TypeVal),1);        //Caso contrario, devemos persistir os outros dados do setor,
+            memcpy((buffer + 1), record->name,51);         //appendando o novo registro abaixo dos registro ja armazenados nesse setor do diretorio.
+            memcpy((buffer + 52), DWORDtoLittleEndian4bytes(record->bytesFileSize),4);
+            memcpy((buffer + 56), DWORDtoLittleEndian4bytes(record->clustersFileSize),4);
+            memcpy((buffer + 60), DWORDtoLittleEndian4bytes(record->firstCluster),4);
+            write_sector(sectorPose, buffer);
+        }
+        else{ //caso contrario, teremos que preencher o buffer com os dados dos outros registros + o novo registro e entao escrever no disco.
+            j = ((int)i/(int)recordsPerSector)*recordsPerSector;
+            //divisao inteira e multiplicacao pelo denominador pra achar o ultimo multiplo do denominador menor que o numerador
+            //printf("\n %i %i \n", i, j);
+            sectorPose = superBloco.DataSectorStart + (handle*superBloco.SectorsPerCluster) + (j/4);  
+            //Em outras palavras. atribuir a j a posicao do inicio do setor em numero de registros.
+            for(k = j; k < i; k++){                                                             
+                memcpy(buffer + record_SIZE*(k - j), &(vectorOfrecords[k]->TypeVal), 1); //transfere os dados dos registros ja existentes no setor
+                memcpy(buffer + 1 + record_SIZE*(k - j), vectorOfrecords[k]->name, 51);
+                memcpy(buffer + 52 + record_SIZE*(k - j), DWORDtoLittleEndian4bytes(vectorOfrecords[k]->bytesFileSize), 4);
+                memcpy(buffer + 56 + record_SIZE*(k - j), DWORDtoLittleEndian4bytes(vectorOfrecords[k]->clustersFileSize), 4);
+                memcpy(buffer + 60 + record_SIZE*(k - j), DWORDtoLittleEndian4bytes(vectorOfrecords[k]->firstCluster), 4);
+            }
+            memcpy(buffer + record_SIZE*(k - j), &(record->TypeVal),1); 
+            memcpy(buffer + 1 + record_SIZE*(k - j), record->name,51); 
+            memcpy(buffer + 52 + record_SIZE*(k - j), DWORDtoLittleEndian4bytes(record->bytesFileSize),4); //transfere os dados do novo registro.
+            memcpy(buffer + 56 + record_SIZE*(k - j), DWORDtoLittleEndian4bytes(record->clustersFileSize),4);
+            memcpy(buffer + 60 + record_SIZE*(k - j), DWORDtoLittleEndian4bytes(record->firstCluster),4);
+            write_sector(sectorPose, buffer);
+            
+        }
+        printf("\nRegistro: '");
+        fputs(name, stdout);
+        printf("' removido ");
+        
+        return 0;                                                               
+    }
 }
 
 int writeNewRecord(struct t2fs_record* record, DIR2 handle){
@@ -171,7 +246,7 @@ int writeNewRecord(struct t2fs_record* record, DIR2 handle){
         else{ //caso contrario, teremos que preencher o buffer com os dados dos outros registros + o novo registro e entao escrever no disco.
             j = ((int)i/(int)recordsPerSector)*recordsPerSector;
             //divisao inteira e multiplicacao pelo denominador pra achar o ultimo multiplo do denominador menor que o numerador
-            printf("\n %i %i \n", i, j);
+           // printf("\n %i %i \n", i, j);
             sectorPose = superBloco.DataSectorStart + (handle*superBloco.SectorsPerCluster) + (j/4);  
             //Em outras palavras. atribuir a j a posicao do inicio do setor em numero de registros.
             for(k = j; k < i; k++){                                                             
@@ -211,6 +286,38 @@ void eraseCluster(int handle){
     }
 }
 
+int deleteFAT(struct t2fs_record* record){
+    int i = 0;
+    int j = 0;
+    int temp;
+    int sectorPose;
+	int pos = record->firstCluster;
+    BYTE* buffer = malloc(sizeof(BYTE)*SECTOR_SIZE);
+    for(i = 0; i < fatSizeInSectors; i++){
+        read_sector(i + superBloco.pFATSectorStart, buffer);
+        j = 0;
+        while(j < SECTOR_SIZE){
+            temp = littleEndian4BytesToDWORD(buffer+j); 
+            //printf("\nnodo: %d antecede o cluster: %X", i*256 + j/4, temp);
+			//fprintf(stderr,"Posição: %d Valor J: %d",pos,j);
+            if(pos == j/4){
+                //printf("\nAchado o cluster!\n");
+                sectorPose = i + superBloco.pFATSectorStart;
+                memcpy(buffer+j, DWORDtoLittleEndian4bytes(0),4);
+                write_sector(sectorPose, buffer);
+                record->firstCluster = i*256 + j/4;
+                return 0;
+            }
+            j += 4;
+        }
+    }
+    printf("\n cluster nao encontrado");
+    return -1;
+	
+
+
+}
+
 int allocateCluster(struct t2fs_record* record){
     int i = 0;
     int j = 0;
@@ -222,7 +329,7 @@ int allocateCluster(struct t2fs_record* record){
         j = 0;
         while(j < SECTOR_SIZE){
             temp = littleEndian4BytesToDWORD(buffer+j); 
-            printf("\nnodo: %d antecede o cluster: %X", i*256 + j/4, temp);
+            //printf("\nnodo: %d antecede o cluster: %X", i*256 + j/4, temp);
             if(temp == '\0'){
                 printf("\nAchado um cluster vazio!\n");
                 sectorPose = i + superBloco.pFATSectorStart;
@@ -258,11 +365,37 @@ int criaArquivosPonto(struct t2fs_record* record, DIR2 fatherClusterPose){
     int sectorPose = superBloco.DataSectorStart + (record->firstCluster*superBloco.SectorsPerCluster);
     return write_sector(sectorPose, buffer);
 }
+struct t2fs_record* searchrecordposition(struct t2fs_record*(*recordArray)[], char* filename){
+    int i = 0;
+	int aux;
+	//printf("filename:%s",filename);
+	if(filename[0] =='\0')
+		return (*recordArray)[i];
+    while(i < recordsPerCluster && strcmp((*recordArray)[i]->name, filename) != 0){
+        //printf("\n%s: ",(*recordArray)[i]->name);
+		i++;
+    }
+    if(i >= recordsPerCluster)
+        return NULL;
+    else if(strcmp((*recordArray)[i]->name, filename) == 0)
+            return i;
+    else
+        return NULL;
+}
+
+
+
+
 
 struct t2fs_record* searchrecord(struct t2fs_record*(*recordArray)[], char* filename){
     int i = 0;
+	
+	printf("filename:%s",filename);
+	if(filename[0] =='\0')
+		return (*recordArray)[i];
     while(i < recordsPerCluster && strcmp((*recordArray)[i]->name, filename) != 0){
-        i++;
+        fprintf(stderr,"\n%s: ",(*recordArray)[i]->name);
+		i++;
     }
     if(i >= recordsPerCluster)
         return NULL;

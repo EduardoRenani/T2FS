@@ -23,7 +23,7 @@ Sa�da:	Se a operacao foi realizada com sucesso, a funcao retorna "0" (zero).
 	Em caso de erro, sera retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int identify2 (char *name, int size) {
-    strncpy (name, "Eduardo Renani - 262701\nEnrico Ossanai - xxxxxxx\nRodolfo Helfenstein - xxxxxxx\n", size);
+    strncpy (name, "Eduardo Renani - 262701\nEnrico Ossanai - 00243514\nRodolfo Helfenstein - 00259909\n", size);
 	return 0;
 }
 
@@ -42,6 +42,57 @@ Sa�da:	Se a operacao foi realizada com sucesso, a funcao retorna o handle do a
 	Em caso de erro, deve ser retornado um valor negativo.
 -----------------------------------------------------------------------------*/
 FILE2 create2 (char *filename) {
+	 char* args = malloc(sizeof(char)*MAX_FILE_NAME_SIZE);
+	strcpy(args, filename);
+	int type = pathType(args);
+	int i = 0;
+	int currentDir = superBloco.RootDirCluster;
+	struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
+	struct t2fs_record* vectorOfrecords[recordsPerCluster];
+	struct t2fs_record* record = NULL;
+	struct t2fs_record* new_record = (struct t2fs_record*)malloc(sizeof(struct t2fs_record));
+	if(type == PATHTYPE_ROOT){
+		printf("\nERRO, arquivo ja existente");
+		return -1;
+	}
+	else{
+		if(type != PATHTYPE_ABS)
+			args = absPathGenerator(args);
+		pathTokens = pathnameParser(args);
+		int size = len(pathTokens);
+		for(i = 0; i < size-1; i++){  //size-1 pois queremos chegar até o penultimo token do pathname, o ultimo eh o proprio diretorio a ser criado.
+			readFolder(&vectorOfrecords, currentDir);
+			record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
+			if(record == NULL || record->TypeVal != TYPEVAL_DIRETORIO){
+			printf("\nPath invalido");
+			return -1;
+			}
+			currentDir = record->firstCluster;
+		}
+		strcpy(new_record->name, pop(&pathTokens));
+		readFolder(&vectorOfrecords, currentDir);
+		record = searchrecord(&vectorOfrecords, new_record->name);
+		if(record != NULL){
+			fprintf(
+				stderr, 
+				"\nERRO: Ja existe um arquivo ou diretorio com este nome! (%s)\n",
+				filename
+				);
+			return -1;
+		}
+		new_record->TypeVal = TYPEVAL_REGULAR;
+		new_record->clustersFileSize = 1;
+		new_record->bytesFileSize = 1024;
+		if(allocateCluster(new_record) != 0) //o campo firstcluster do new record sera preenchido dentro da allocate cluster
+			return -1;
+		else if(writeNewRecord(new_record, currentDir) !=0)
+			return -1;
+		else{
+			fprintf(stderr, "\n este eh o pathname original ao fim da create2(): %s\n", filename);
+		}
+		return 0;
+	}
+
     return -1;
 }
 
@@ -57,6 +108,69 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int delete2 (char *filename) {
+	
+	if(checkValidPath(filename, TYPEVAL_REGULAR) != 0){
+		printf("\nERRO: Path invalido");
+		return -1;
+	}
+	//fprintf(stderr,"\nDepois de check: %s",filename);
+    int i = 0,flag, currentDir = superBloco.RootDirCluster;
+	struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
+	struct t2fs_record* vectorOfrecords[recordsPerCluster];
+	struct t2fs_record* record = NULL;
+	struct t2fs_record* new_record = (struct t2fs_record*)malloc(sizeof(struct t2fs_record));
+	int pathtype = pathType(filename);
+	
+	
+	if(pathtype != PATHTYPE_ABS )
+        filename = absPathGenerator(filename);
+	
+	pathTokens = pathnameParser(filename);
+	int size = len(pathTokens);
+	
+	for(i = 0; i < (size-1); i++){
+		readFolder(&vectorOfrecords, currentDir);
+		record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
+		currentDir = record->firstCluster;
+	}
+	readFolder(&vectorOfrecords, currentDir);
+	
+	record =searchrecord(&vectorOfrecords, pop(&pathTokens));
+	
+	
+	eraseCluster(record->firstCluster);
+	//fprintf(stderr,"\nFILENAME:> %s %d %d",filename, pathType,size);
+	pathTokens = pathnameParser(filename);
+	currentDir = superBloco.RootDirCluster;
+	
+	for(i = 0; i < (size-1); i++){
+		readFolder(&vectorOfrecords, currentDir);
+		record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
+		currentDir = record->firstCluster;
+	}
+	readFolder(&vectorOfrecords, currentDir);
+	//printf("\nVAI PROCURAR");
+	new_record = searchrecord(&vectorOfrecords, pop(&pathTokens));
+	if(new_record == NULL)
+		//fprintf(stderr,"new_record NULL");
+	if(deleteFAT(new_record)!=0)
+		return -1;
+	
+	char name[100];
+	strcpy(name,new_record->name);
+    //fprintf(stderr,"\nFILENAME:> %s %d",name, pathType);
+	
+	new_record->TypeVal = TYPEVAL_INVALIDO;
+	new_record->clustersFileSize = 0;
+	new_record->bytesFileSize = 0;
+	strcpy(new_record->name,"\0");
+	new_record->firstCluster = 0;
+	
+	if(DeleteRecord(new_record, currentDir,name) ==0)
+		{fprintf(stderr, "\n o arquivo apagado foi : %s\n", filename);
+		return 0;}
+	else
+		return -1;
     return -1;
 }
 
@@ -77,7 +191,40 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna o han
 	Em caso de erro, deve ser retornado um valor negativo
 -----------------------------------------------------------------------------*/
 FILE2 open2 (char *filename) {
-    return -1;
+    if(checkValidPath(filename, TYPEVAL_REGULAR) != 0){
+		printf("\nERRO: Path invalido");
+		return -1;
+	}
+	//fprintf(stderr,"\nDepois de check: %s",filename);
+    int i = 0, currentDir = superBloco.RootDirCluster;
+	struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
+	struct t2fs_record* vectorOfrecords[recordsPerCluster];
+	struct t2fs_record* record = NULL;
+	int pathtype = pathType(filename);
+	if(pathtype != PATHTYPE_ABS && pathtype != PATHTYPE_ROOT )
+        filename = absPathGenerator(filename);
+	pathTokens = pathnameParser(filename);
+	if(pathtype == -1)
+		return -1;
+	int size = len(pathTokens);
+	//printf( "len: %d", size);
+	for(i = 0; i < (size-1); i++){
+		readFolder(&vectorOfrecords, currentDir);
+		record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
+		currentDir = record->firstCluster;
+	}
+	readFolder(&vectorOfrecords, currentDir);
+	record = searchrecord(&vectorOfrecords, pop(&pathTokens));
+	
+	
+	if(pushOpenFile(record) == 0){
+			printf("\nArquivo aberto: ");
+			fputs(record->name, stdout);
+			printf("\n");
+		return record->firstCluster;
+	}
+	else
+		return -1;
 }
 
 
@@ -91,6 +238,20 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int close2 (FILE2 handle) {
+	fprintf(stderr, "\nCLOSE\n");
+	struct t2fs_record* record = NULL;
+	record = searchOpenFile(handle);
+	if(record!=NULL)
+		if(deleteOpenFile(record) == 0){
+
+			printf("\nDiretorio: ");
+			fputs(record->name, stdout);
+			printf(" fechado com sucesso\n");
+			return 0;
+		}
+	else
+		return -1;
+	
     return -1;
 }
 
@@ -164,6 +325,18 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int seek2 (FILE2 handle, DWORD offset) {
+	int i = 0;
+	while(i < 10){
+		if(openFiles[i].firstCluster == handle){
+			openFiles[i].currentPointer += offset;
+			break;
+		}
+		i++;
+	}
+	if(i >= 10)
+		printf("Arquivo nao esta aberto");
+	else
+		return 0;
     return -1;
 }
 
@@ -249,7 +422,71 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int rmdir2 (char *pathname) {
-    return -1;
+	if(checkValidPath(pathname, TYPEVAL_DIRETORIO) != 0){
+		printf("\nERRO: Path invalido");
+		return -1;
+	}
+	//fprintf(stderr,"\nDepois de check: %s",pathname);
+    int i = 0,flag, currentDir = superBloco.RootDirCluster;
+	struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
+	struct t2fs_record* vectorOfrecords[recordsPerCluster];
+	struct t2fs_record* record = NULL;
+	struct t2fs_record* new_record = (struct t2fs_record*)malloc(sizeof(struct t2fs_record));
+	int pathtype = pathType(pathname);
+	pathTokens = pathnameParser(pathname);
+	if(pathtype == PATHTYPE_ROOT)
+	{	printf("\nERRO: Nao pode remover a raiz");
+		return -1;}
+	if(pathtype != PATHTYPE_ABS )
+        pathname = absPathGenerator(pathname);
+	int size = len(pathTokens);
+	for(i = 0; i < size; i++){
+		readFolder(&vectorOfrecords, currentDir);
+		record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
+		currentDir = record->firstCluster;
+	}
+	readFolder(&vectorOfrecords, currentDir);
+	if(checkEmptyFolder(&vectorOfrecords, currentDir)!= 0)
+		return -1;
+	
+	
+	eraseCluster(vectorOfrecords[0]->firstCluster);
+	
+	pathTokens = pathnameParser(pathname);
+	currentDir = superBloco.RootDirCluster;
+	
+	for(i = 0; i < (size-1); i++){
+		readFolder(&vectorOfrecords, currentDir);
+		record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
+		currentDir = record->firstCluster;
+	}
+	readFolder(&vectorOfrecords, currentDir);
+	//printf("\nVAI PROCURAR");
+	new_record = searchrecord(&vectorOfrecords, pop(&pathTokens));
+	if(new_record == NULL)
+		//fprintf(stderr,"new_record NULL");
+	if(deleteFAT(new_record)!=0)
+		return -1;
+	
+	char name[100];
+	strcpy(name,new_record->name);
+	
+	new_record->TypeVal = TYPEVAL_INVALIDO;
+	new_record->clustersFileSize = 0;
+	new_record->bytesFileSize = 0;
+	strcpy(new_record->name,"\0");
+	new_record->firstCluster = 0;
+	
+	if(DeleteRecord(new_record, currentDir,name) ==0)
+		{fprintf(stderr, "\no diretorio apagado foi : %s\n", pathname);
+		return 0;}
+	else
+		return -1;
+		
+		
+	
+	
+	
 }
 
 
@@ -267,8 +504,11 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 		Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int chdir2 (char *pathname) {
-	if(checkValidPath(pathname, TYPEVAL_DIRETORIO) != 0){
-		strcpy(WORKING_DIR, absPathGenerator(pathname));
+	if(checkValidPath(pathname, TYPEVAL_DIRETORIO) == 0){
+		if(pathType(pathname)== PATHTYPE_ABS)
+			strcpy(WORKING_DIR, pathname);
+		else
+			strcpy(WORKING_DIR, absPathGenerator(pathname));
 		return 0;
 	}
 	else
@@ -320,16 +560,18 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna o ide
 	Em caso de erro, ser� retornado um valor negativo.
 -----------------------------------------------------------------------------*/
 DIR2 opendir2 (char *pathname) {
-	if(checkValidPath(pathname, TYPEVAL_DIRETORIO) == -1){
+	if(checkValidPath(pathname, TYPEVAL_DIRETORIO) != 0){
 		printf("\nERRO: Path invalido");
 		return -1;
 	}
+	//fprintf(stderr,"\nDepois de check: %s",pathname);
     int i = 0, currentDir = superBloco.RootDirCluster;
 	struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
 	struct t2fs_record* vectorOfrecords[recordsPerCluster];
 	struct t2fs_record* record = NULL;
 	int pathtype = pathType(pathname);
-	pathname = absPathGenerator(pathname);
+	if(pathtype != PATHTYPE_ABS && pathtype != PATHTYPE_ROOT )
+        pathname = absPathGenerator(pathname);
 	pathTokens = pathnameParser(pathname);
 	if(pathtype == -1)
 		return -1;
@@ -347,6 +589,7 @@ DIR2 opendir2 (char *pathname) {
 			return -1;
 	}
 	int size = len(pathTokens);
+	//printf( "len: %d", size);
 	for(i = 0; i < size; i++){
 		readFolder(&vectorOfrecords, currentDir);
 		record = searchrecord(&vectorOfrecords, pop(&pathTokens)); //registro do diretorio intermediário e o nome do diretorio filho desejado.
@@ -416,14 +659,16 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int closedir2 (DIR2 handle) {
-	struct t2fs_record* record = (struct t2fs_record*)malloc(sizeof(struct t2fs_record));
+	//fprintf(stderr, "\nCLOSE\n");
+	struct t2fs_record* record = NULL;
 	record = searchOpenDir(handle);
-    if(deleteOpenDir(record) == 0){
-		printf("\nDiretorio: ");
-		fputs(record->name, stdout);
-		printf(" fechado com sucesso\n");
-		return 0;
-	}
+	if(record!=NULL)
+		if(deleteOpenDir(record) == 0){
+			printf("\nDiretorio: ");
+			fputs(record->name, stdout);
+			printf(" fechado com sucesso\n");
+			return 0;
+		}
 	else
 		return -1;
 }

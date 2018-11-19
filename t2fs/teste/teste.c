@@ -160,14 +160,36 @@ int main(){
     //int handle = opendir2(args2);
     readAllDir2(2);
     */
-    char* args = "./dir1";
-    char* args2 = "/dirTeste2";
-    char* args3 = "../dirTeste.txt";
-    char* args4 = "/";
-    opendir2(args);
-    opendir2(args2);
-    opendir2(args3);
-    opendir2(args4);
-
-    return 0;
+	
+    char* args =  "/dir1/dir2";
+    char* args2 = "/dir1";
+    char* args3 = "/diretorioNOVISSIMO";
+    char* args4 = "./file1.txt";
+	char* args5 = "./file2.txt";
+	char* args6 = "./file3.txt";
+	
+	//readAllDir2(5);
+	//mkdir2(args);
+	//rmdir2 (args);
+	//readAllDir2(5);
+	//readAllDir2(2);
+	//mkdir2(args);
+	//rmdir2 (args);
+	//mkdir2(args3);
+	chdir2(args2);
+	readAllDir2(5);
+	create2(args4);
+	create2(args5);
+	create2(args6);
+	readAllDir2(5);
+	delete2(args6);
+	readAllDir2(5);
+	//mkdir2(args);
+    //i=opendir2(args2);
+	//opendir2(args3);
+	//opendir2(args4);
+	//printOpenDir();
+	//closedir2(i);
+	//printOpenDir();*/
+	
 }

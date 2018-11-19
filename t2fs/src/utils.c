@@ -124,6 +124,31 @@ void concat(struct Node** head_ref, struct Node** tail){
 =================== VETOR DE DIRETORIOS ABERTOS ==========
 */
 
+int pushOpenFile(struct t2fs_record* record){
+    int i;
+    for(i=0; i<10; i++){
+        if(openFiles[i].firstCluster == -1)
+            break;
+    }
+    if(i >= 10){
+        printf("\nERRO: voce ultrapassou o numero de Arquivos abertos permitido\n");
+        return -1;   
+    }
+    else
+        if(record->TypeVal == TYPEVAL_REGULAR){
+            openFiles[i].firstCluster = record->firstCluster;
+            openFiles[i].currentPointer = 0;
+            openFiles[i].byteSize = record->bytesFileSize;
+            strcpy(openFiles[i].filename, record->name);
+    return 0;
+    }
+    else{
+        printf("\nERRO: voce esta tentando abrir algo que nao é um arquivo\n");
+        return -1;
+    }
+}
+
+
 int pushOpenDir(struct t2fs_record* record){
     int i;
     for(i=0; i<10; i++){
@@ -148,6 +173,28 @@ int pushOpenDir(struct t2fs_record* record){
     }
 }
 
+int deleteOpenFile(struct t2fs_record* record){
+    int i;
+    for(i=0; i<10; i++){
+        if(openFiles[i].firstCluster == record->firstCluster)
+            break;
+    }
+    if(i >= 10){
+        printf("\nERRO: voce esta tentando abrir um arquivo que nao existe ou nao foi aberto\n");
+        return -1;  
+    }
+    else
+        if(record->TypeVal == TYPEVAL_REGULAR&& record->firstCluster != -1 && record != NULL){
+            openFiles[i].firstCluster = -1;
+            openFiles[i].currentPointer = -1;
+            openFiles[i].byteSize = -1;
+            strcpy(openFiles[i].filename, "");
+            return 0;
+        }
+        else
+            return -1;
+}
+
 int deleteOpenDir(struct t2fs_record* record){
     int i;
     for(i=0; i<10; i++){
@@ -170,8 +217,35 @@ int deleteOpenDir(struct t2fs_record* record){
             return -1;
 }
 
+struct t2fs_record* searchOpenFile(DIR2 handle){
+    int i;
+	//fprintf(stderr, "\nSEARCHOPENFILE\n");
+    for(i=0; i<10; i++){
+        if(openFiles[i].firstCluster == handle)
+            break;
+    }
+    if(i >= 10){
+        printf("\nERRO: Arquivo nao encontrado.\n");
+        return NULL;  
+    }
+	 
+    struct t2fs_record* record = (struct t2fs_record*)malloc(sizeof(struct t2fs_record));
+    if(openFiles[i].firstCluster != -1){
+    strcpy(record->name,openFiles[i].filename);
+    record->TypeVal = TYPEVAL_REGULAR;
+    record->firstCluster = openFiles[i].firstCluster;
+    record->bytesFileSize = SECTOR_SIZE*superBloco.SectorsPerCluster;
+    record->clustersFileSize = 1;
+    return record;
+    }
+    else
+		
+        return NULL;
+}
+
 struct t2fs_record* searchOpenDir(DIR2 handle){
     int i;
+	//fprintf(stderr, "\nSEARCHOPENDIR\n");
     for(i=0; i<10; i++){
         if(openFolders[i].clusterPose == handle)
             break;
@@ -248,7 +322,7 @@ int isAlphaNum(char* pathname){
 
 int isValidPathname(char* pathname){
     int i = 0, isValid = 1;
-    fprintf(stderr, "\n%s\n", pathname);
+    //fprintf(stderr, "\n%s\n", pathname);
     if(sizeof(pathname) == 0)
         return 0;
     while(pathname[i] != '\0'){
@@ -257,11 +331,13 @@ int isValidPathname(char* pathname){
                 (pathname[i] >= '0' && pathname[i] <= '9') || //numero
                 (pathname[i] >= 'A' && pathname[i] <= 'Z') || //alfabeto maiusculo
                 (pathname[i] >= 'a' && pathname[i] <= 'z') || //alfabeto minusculo
-                (pathname[i] == '/' && pathname[i+1] != '/') //não tem duas barras seguidas.
+                (pathname[i] == '/' && pathname[i+1] != '/')|| //não tem duas barras seguidas.
+				(pathname[i] == '.')
             ) 
             ? 1 : 0;
         i++;
     }
+	//fprintf(stderr, "\nis valid%d\n", isValid);
     return isValid;
 }
 
@@ -307,22 +383,29 @@ struct Node* tokenizer(char* string){
 }
 
 int pathType(char * pathname){
-    if(isValidPathname(pathname) && pathname[0] == '/'){
+	//fprintf(stderr,"\n%s", pathname);
+    if(strcmp(pathname, "/") == 0){
+		//fprintf(stderr, "\nROOT", pathname);
+        return PATHTYPE_ROOT;
+	}
+	else if(isValidPathname(pathname) && pathname[0] == '/'){
+		//fprintf(stderr, "\nABSOLUTO", pathname);
         return PATHTYPE_ABS;
     }
     else if(pathname[0] == '.' && pathname[1] == '.' && isValidPathname(substringGenerator(pathname, 2, strlen(pathname)-1))){
+		//fprintf(stderr, "\nPAI", pathname);
         return PATHTYPE_PAI;
     }
     else if(pathname[0] == '.' && pathname[1] == '/' && isValidPathname(substringGenerator(pathname, 1, strlen(pathname)-1))){
+		//fprintf(stderr, "\nCUR", pathname);
         return PATHTYPE_CUR;
     }
     else if(isAlphaNum(pathname) || strcmp(pathname, ".") || strcmp(pathname, "..")){
+		//fprintf(stderr, "\nARQ", pathname);
         return PATHTYPE_ARQ;
     }
-    else if(strcmp(pathname, "/") == 0){
-        return PATHTYPE_ROOT;
-    }
     else{
+		//fprintf(stderr, "\nERRO PATHTYPE", pathname);
         return -1;
     }
 }
@@ -366,11 +449,13 @@ char* absPathGenerator(char* pathname){
             break;
         case PATHTYPE_CUR:
             strcpy(cwslice, cwdir);
+			
             if(strcmp(cwslice, "/") == 0)
                 pathnameSlice = substringGenerator(pathname, 2, strlen(pathname) - 1);
             else
                 pathnameSlice = substringGenerator(pathname, 1, strlen(pathname) - 1);
             strncat(cwslice, pathnameSlice, strlen(pathnameSlice)); 
+			
             return cwslice;
             break;
         case PATHTYPE_ARQ:
@@ -386,33 +471,46 @@ char* absPathGenerator(char* pathname){
     }
 }
 
+
 int checkValidPath(char* pathname, int filetype){
     int size, currentDir, i;
     struct Node* pathTokens = (struct Node*)malloc(sizeof(struct Node));
     struct t2fs_record* vectorOfrecords[recordsPerCluster];
     struct t2fs_record* record = NULL;
     int pathtype = pathType(pathname);
-    if(pathtype != PATHTYPE_ABS)
+    if(pathtype != PATHTYPE_ABS && pathtype != PATHTYPE_ROOT )
         pathname = absPathGenerator(pathname);
     pathTokens = pathnameParser(pathname);
     if(pathTokens == NULL)
-        return -1;
+		{//fprintf(stderr, "ERRO 1", pathname);
+			return -1;
+		}
+	//printList(pathTokens);
     size = len(pathTokens);
     currentDir = superBloco.RootDirCluster;
+	//fprintf(stderr,"Antes :%d size:%d", currentDir,size);
     for(i = 0; i < size - 1; i++){
         readFolder(&vectorOfrecords, currentDir);
         record = searchrecord(&vectorOfrecords, pop(&pathTokens));
         if(record == NULL || record->TypeVal != TYPEVAL_DIRETORIO)
-            return -1;
+            {//fprintf(stderr, "ERRO 2", pathname);
+			return -1;
+		}
         else
             currentDir = record->firstCluster; 
     }
+	//fprintf(stderr,"DEpois :%d", currentDir);
     readFolder(&vectorOfrecords, currentDir);
     record = searchrecord(&vectorOfrecords, pop(&pathTokens));
-    if(record != NULL && record->TypeVal == filetype)
-        return 0;
+	//fprintf(stderr,"recordes :%d ",filetype);
+	fprintf(stderr, "Pathname antes de sair:%s", pathname);
+	if(record != NULL)
+		if(record->TypeVal == filetype)
+			return 0;
     else
-        return -1;
+        {//fprintf(stderr, "\nERRO 3", pathname);
+			return -1;
+		}
 }
 
 int max(int a, int b){
